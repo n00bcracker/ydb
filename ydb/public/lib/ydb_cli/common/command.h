@@ -160,7 +160,7 @@ public:
         bool NeedToConnect = true;
         bool NeedToCheckForUpdate = true;
         bool ForceVersionCheck = false;
-        bool AllowEmptyDatabase = false;
+        bool AllowEmptyDatabase = true;
         bool AllowEmptyAddress = false;
         bool OnlyExplicitProfile = false;
         bool AssumeYes = false;
@@ -275,22 +275,22 @@ public:
                 .SetDatabase(Database)
                 .SetCredentialsProviderFactory(GetSingletonCredentialsProviderFactory())
                 .SetUsePerChannelTcpConnection(UsePerChannelTcpConnection);
-        
+
             if (EnableSsl) {
                 driverConfig.UseSecureConnection(CaCerts);
             }
-        
+
             if (IsNetworkIntensive) {
                 size_t networkThreadNum = GetNetworkThreadNum();
                 driverConfig.SetNetworkThreadsNum(networkThreadNum);
             }
-        
+
             if (SkipDiscovery) {
                 driverConfig.SetDiscoveryMode(EDiscoveryMode::Off);
             }
-        
+
             driverConfig.UseClientCertificate(ClientCert, ClientCertPrivateKey);
-        
+
             return driverConfig;
         }
 
