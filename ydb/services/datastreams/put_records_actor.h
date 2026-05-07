@@ -287,15 +287,6 @@ namespace NKikimr::NDataStreams::V1 {
                                         error);
         }
 
-        if (this->Request_->GetSerializedToken().empty()) {
-            if (AppData(ctx)->EnforceUserTokenRequirement || AppData(ctx)->PQConfig.GetRequireCredentialsInNewProtocol()) {
-                return this->ReplyWithError(Ydb::StatusIds::UNAUTHORIZED,
-                                            Ydb::PersQueue::ErrorCode::ACCESS_DENIED,
-                                            TStringBuilder() << "Access to stream "
-                                            << this->GetProtoRequest()->stream_name()
-                                            << " is denied");
-            }
-        }
         NACLib::TUserToken token(this->Request_->GetSerializedToken());
 
         ShouldBeCharged = std::find(

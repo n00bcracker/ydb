@@ -117,7 +117,7 @@ namespace NKikimr::NGRpcProxy::V1 {
         virtual TString GetTopicPath() const = 0;
         virtual void RespondWithCode(Ydb::StatusIds::StatusCode status, bool notFound = false) = 0;
         virtual void AddIssue(const NYql::TIssue& issue) = 0;
-        virtual bool SetRequestToken(NSchemeCache::TSchemeCacheNavigate* request) const = 0;
+        virtual void SetRequestToken(NSchemeCache::TSchemeCacheNavigate* request) const = 0;
 
         virtual bool ProcessCdc(const NSchemeCache::TSchemeCacheNavigate::TEntry& entry) {
             Y_UNUSED(entry);
@@ -126,11 +126,7 @@ namespace NKikimr::NGRpcProxy::V1 {
 
         void SendDescribeProposeRequest(const NActors::TActorContext& ctx, bool showPrivate) {
             auto navigateRequest = std::make_unique<NSchemeCache::TSchemeCacheNavigate>();
-            if (!SetRequestToken(navigateRequest.get())) {
-                AddIssue(FillIssue("Unauthenticated access is forbidden, please provide credentials",
-                                   Ydb::PersQueue::ErrorCode::ACCESS_DENIED));
-                return RespondWithCode(Ydb::StatusIds::UNAUTHORIZED);
-            }
+            SetRequestToken(navigateRequest.get());
 
             navigateRequest->DatabaseName = Database;
             navigateRequest->ResultSet.emplace_back(NSchemeCache::TSchemeCacheNavigate::TEntry{
@@ -327,14 +323,8 @@ namespace NKikimr::NGRpcProxy::V1 {
             SetDatabase(proposal.get(), *this->Request_);
             SetPeerName(proposal.get(), *this->Request_);
 
-            if (this->Request_->GetSerializedToken().empty() && !InternalRequest) {
-                if (AppData(ctx)->EnforceUserTokenRequirement || AppData(ctx)->PQConfig.GetRequireCredentialsInNewProtocol()) {
-                    return ReplyWithError(Ydb::StatusIds::UNAUTHORIZED, Ydb::PersQueue::ErrorCode::ACCESS_DENIED,
-                                          "Unauthenticated access is forbidden, please provide credentials");
-                }
-            } else {
-                proposal->Record.SetUserToken(this->Request_->GetSerializedToken());
-            }
+
+            proposal->Record.SetUserToken(this->Request_->GetSerializedToken());
 
             static_cast<TDerived*>(this)->FillProposeRequest(*proposal, ctx, workingDir, name);
 
@@ -347,12 +337,10 @@ namespace NKikimr::NGRpcProxy::V1 {
             return TActorBase::SendDescribeProposeRequest(ctx, showPrivate || PrivateTopicName.Defined());
         }
 
-        bool SetRequestToken(NSchemeCache::TSchemeCacheNavigate* request) const override {
+        void SetRequestToken(NSchemeCache::TSchemeCacheNavigate* request) const override {
             if (auto const& token = this->Request_->GetSerializedToken()) {
                 request->UserToken = new NACLib::TUserToken(token);
-                return true;
             }
-            return InternalRequest || !(AppData()->EnforceUserTokenRequirement || AppData()->PQConfig.GetRequireCredentialsInNewProtocol());
         }
 
         bool ProcessCdc(const NSchemeCache::TSchemeCacheNavigate::TEntry& response) override {
@@ -583,13 +571,8 @@ namespace NKikimr::NGRpcProxy::V1 {
             return true;
         }
 
-        bool SetRequestToken(NSchemeCache::TSchemeCacheNavigate* request) const override {
-            if (Request.Token.empty()) {
-                return !(AppData()->EnforceUserTokenRequirement || AppData()->PQConfig.GetRequireCredentialsInNewProtocol());
-            } else {
-                request->UserToken = new NACLib::TUserToken(Request.Token);
-                return true;
-            }
+        void SetRequestToken(NSchemeCache::TSchemeCacheNavigate* request) const override {
+            request->UserToken = new NACLib::TUserToken(Request.Token);
         }
 
         void AddIssue(const NYql::TIssue& issue) override {

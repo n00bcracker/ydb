@@ -60,14 +60,7 @@ void TCommitOffsetActor::Bootstrap(const TActorContext& ctx) {
     }
 
     TIntrusivePtr<NACLib::TUserToken> token;
-    if (Request_->GetSerializedToken().empty()) {
-        if (AppData(ctx)->EnforceUserTokenRequirement || AppData(ctx)->PQConfig.GetRequireCredentialsInNewProtocol()) {
-            AnswerError("Unauthenticated access is forbidden, please provide credentials", PersQueue::ErrorCode::ACCESS_DENIED, ctx);
-            return;
-        }
-    } else {
-        token = new NACLib::TUserToken(Request_->GetSerializedToken());
-    }
+    token = new NACLib::TUserToken(Request_->GetSerializedToken());
 
     THashSet<TString> topicsToResolve;
 

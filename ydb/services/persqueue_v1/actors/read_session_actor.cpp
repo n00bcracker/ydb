@@ -873,12 +873,7 @@ void TReadSessionActor<UseMigrationProtocol>::Handle(typename TEvReadInit::TPtr&
         TopicsToResolve.insert(path);
     }
 
-    if (Request->GetSerializedToken().empty()) {
-        if (AppData(ctx)->EnforceUserTokenRequirement || AppData(ctx)->PQConfig.GetRequireCredentialsInNewProtocol()) {
-            return CloseSession(PersQueue::ErrorCode::ACCESS_DENIED,
-                "unauthenticated access is forbidden, please provide credentials", ctx);
-        }
-    } else {
+    if (!Request->GetSerializedToken().empty()) {
         AFL_ENSURE(Request->GetYdbToken());
         Auth = *(Request->GetYdbToken());
         Token = new NACLib::TUserToken(Request->GetSerializedToken());

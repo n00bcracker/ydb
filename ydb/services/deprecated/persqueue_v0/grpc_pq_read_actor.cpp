@@ -720,10 +720,6 @@ void TReadSessionActor::Handle(TEvPQProxy::TEvReadInit::TPtr& ev, const TActorCo
         if (SessionsWithoutAuth) {
             ++(*SessionsWithoutAuth);
         }
-        if (AppData(ctx)->EnforceUserTokenRequirement || AppData(ctx)->PQConfig.GetRequireCredentialsInNewProtocol()) {
-            CloseSession("Unauthenticated access is forbidden, please provide credentials", NPersQueue::NErrorCode::ACCESS_DENIED, ctx);
-            return;
-        }
     }
     TopicsList = TopicsHandler.GetReadTopicsList(
             topicsToResolve, ReadOnlyLocal, Database

@@ -82,11 +82,6 @@ namespace NKikimr::NSqsTopic::V1 {
         TBase::Bootstrap(ctx);
         const auto& request = Request();
         const int maxResults = request.has_max_results() ? request.max_results() : MAX_LIST_QUEUES_RESULT;
-        if (this->Request_->GetSerializedToken().empty()) {
-            if (AppData(ctx)->EnforceUserTokenRequirement || AppData(ctx)->PQConfig.GetRequireCredentialsInNewProtocol()) {
-                return ReplyWithError(MakeError(NSQS::NErrors::ACCESS_DENIED, "Unauthenticated access is forbidden, please provide credentials"));
-            }
-        }
         if (DatabaseName_.empty()) {
             return ReplyWithError(MakeError(NSQS::NErrors::INVALID_PARAMETER_VALUE, "Request without database is forbidden"));
         }

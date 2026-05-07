@@ -470,14 +470,6 @@ void TWriteSessionActor<UseMigrationProtocol>::Handle(typename TEvWriteInit::TPt
     }
     LogSession(ctx);
 
-    if (Request->GetSerializedToken().empty()) { // session without auth
-        if (AppData(ctx)->EnforceUserTokenRequirement || AppData(ctx)->PQConfig.GetRequireCredentialsInNewProtocol()) {
-            Request->ReplyUnauthenticated("Unauthenticated access is forbidden, please provide credentials");
-            Die(ctx);
-            return;
-        }
-    }
-
     InitCheckSchema(ctx, true, InitSpan.GetTraceId());
 
     PreferedPartition = Max<ui32>();
@@ -659,11 +651,6 @@ void TWriteSessionActor<UseMigrationProtocol>::Handle(TEvDescribeTopicsResponse:
     SetMeteringMode(meteringMode);
 
     if (Request->GetSerializedToken().empty()) { // session without auth
-        if (AppData(ctx)->EnforceUserTokenRequirement || AppData(ctx)->PQConfig.GetRequireCredentialsInNewProtocol()) {
-            Request->ReplyUnauthenticated("Unauthenticated access is forbidden, please provide credentials");
-            Die(ctx);
-            return;
-        }
         AFL_ENSURE(FirstACLCheck);
         FirstACLCheck = false;
         DiscoverPartition(ctx);
@@ -1347,8 +1334,8 @@ void TWriteSessionActor<UseMigrationProtocol>::Handle(typename TEvUpdateToken::T
     }
 
     const auto& token = ev->Get()->Request.update_token_request().token();
-    if (token == Auth || (token.empty() && !(AppData(ctx)->EnforceUserTokenRequirement || AppData(ctx)->PQConfig.GetRequireCredentialsInNewProtocol()))) {
-        // Got same token or empty token with no non-empty token requirement, do not trigger any checks
+    if (token == Auth || token.empty()) {
+        // Got same token or empty token do not trigger any checks
         TServerMessage serverMessage;
         serverMessage.set_status(Ydb::StatusIds::SUCCESS);
         serverMessage.mutable_update_token_response();
@@ -1565,7 +1552,7 @@ void TWriteSessionActor<UseMigrationProtocol>::LogSession(const TActorContext& c
     }
     LOG_INFO_S(
             ctx, NKikimrServices::PQ_WRITE_PROXY,
-            "write session:  cookie=" << Cookie << " sessionId=" << OwnerCookie 
+            "write session:  cookie=" << Cookie << " sessionId=" << OwnerCookie
                                       << " userAgent=\"" << UserAgent
                                       << "\" ip=" << PeerName << " proto=" << ProtoName
                                       << " user=" << (Token ? Token->GetUserSID() : "-")

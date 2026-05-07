@@ -940,12 +940,6 @@ namespace NKikimr::NDataStreams::V1 {
                                           "Request without dabase is forbiden", ctx);
         }
 
-        if (this->Request_->GetSerializedToken().empty()) {
-            if (AppData(ctx)->EnforceUserTokenRequirement || AppData(ctx)->PQConfig.GetRequireCredentialsInNewProtocol()) {
-                return ReplyWithError(Ydb::StatusIds::UNAUTHORIZED, NYds::EErrorCodes::BAD_REQUEST,
-                                          "Unauthenticated access is forbidden, please provide credentials", ctx);
-            }
-        }
         int limit = GetProtoRequest()->limit() == 0 ? 100 : GetProtoRequest()->limit();
 
         if (limit > 10000) {
